@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F5EF">
+<title>Pi-Cocoon 3D Showcase</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Interactive 3D concept model of Pi-Cocoon, a portable padded picnic mattress with an integrated three-rib retractable canopy and a clamshell carrying fold.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600&display=swap">
+<style>
+  /* Layout: full-screen 3D stage. Brand top-left, feature card top-right, one control dock at the bottom.
+     Single warm-light theme by design (product showcase on a studio-white backdrop). */
+  :root {
+    --bg: #F6F4EE; --bg2: #FFFFFF; --ink: #1E2A24; --muted: #5E6B63; --green: #2F5D46; --forest: #1F4A36; --navy: #1D2B4F;
+    --mint: #E6F0E9; --line: rgba(31, 74, 54, 0.13); --panel: rgba(255, 255, 255, 0.88); --accent: #C2652F; --onaccent: #FFFFFF;
+    --shadow: 0 10px 34px rgba(31, 52, 40, 0.12);
+    --display: 'Outfit', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+    --text: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: radial-gradient(120% 90% at 50% 36%, var(--bg2) 0%, var(--bg) 72%) fixed, var(--bg); color: var(--ink);
+    font-family: var(--text); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
+  #view:active { cursor: grabbing; }
+  .ui { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+    padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+    padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .brand h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.015em; line-height: 1; }
+  .brand h1 .pi { color: var(--navy); } .brand h1 .co { color: var(--green); }
+  .brand p { margin: 6px 0 0; font-size: 15px; color: var(--muted); }
+  .chip { display: inline-block; margin-top: 10px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--forest);
+    background: var(--mint); border-radius: 999px; padding: 5px 10px; }
+  .mode { font-size: 12.5px; font-weight: 500; color: var(--forest); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px;
+    box-shadow: var(--shadow); max-width: 340px; text-align: right; }
+  .bottom { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .hint { font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; transition: opacity .6s ease; }
+  .hint.faded { opacity: 0; }
+  .hint .touch { display: none; }
+  @media (pointer: coarse) { .hint .mouse { display: none; } .hint .touch { display: inline; } }
+
+  /* control dock */
+  .dock { pointer-events: auto; background: var(--panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--line);
+    border-radius: 20px; padding: 12px 14px; box-shadow: var(--shadow); max-width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .groups { display: flex; align-items: stretch; gap: 16px; }
+  .grp { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .grp + .grp { border-left: 1px solid var(--line); padding-left: 16px; }
+  .gt { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .sw { width: 30px; height: 30px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), 0 0 0 2px var(--bg2), 0 0 0 3px transparent; transition: box-shadow .2s ease, transform .2s ease; }
+  .sw[aria-checked="true"] { box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), 0 0 0 2px var(--bg2), 0 0 0 4px var(--forest); }
+  .sw:hover { transform: scale(1.06); }
+  .cwtext { display: flex; flex-direction: column; line-height: 1.15; margin-left: 4px; min-width: 104px; }
+  .cwtext b { font-size: 14px; font-weight: 600; }
+  .cwtext span { font-size: 12px; color: var(--muted); }
+  .seg { display: flex; background: var(--mint); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button, .tool { font: 600 14px/1 var(--text); border: 0; cursor: pointer; border-radius: 9px; padding: 10px 13px; color: var(--forest); background: transparent; white-space: nowrap; }
+  .seg button[aria-pressed="true"] { background: var(--green); color: var(--onaccent); box-shadow: 0 2px 6px rgba(31, 74, 54, 0.25); }
+  .seg button:disabled, .tool:disabled { opacity: .45; cursor: not-allowed; }
+  input[type=range] { width: 100%; accent-color: var(--green); margin: 0; height: 18px; }
+  input[type=range]:disabled { opacity: .45; }
+  .desc { font-size: 12px; color: var(--muted); margin: 0; }
+  .tools { display: flex; gap: 6px; }
+  .tool { background: var(--bg2); border: 1px solid var(--line); }
+  .tool[aria-pressed="true"] { background: var(--forest); color: var(--onaccent); border-color: var(--forest); }
+  #labels[aria-pressed="true"] { background: var(--mint); color: var(--forest); border-color: var(--line); }
+  .tool.primary { background: var(--green); color: var(--onaccent); border-color: var(--green); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  .port { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .port .st { font-size: 13px; font-weight: 600; color: var(--forest); }
+  .port .st small { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* rib pills + feature hotspots */
+  .lab { position: fixed; left: 0; top: 0; pointer-events: none; font: 600 12.5px/1 var(--text); color: var(--onaccent); background: #2B3A33;
+    padding: 6px 9px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+  .lab::after { content: ""; position: absolute; left: 50%; bottom: -8px; width: 2px; height: 8px; margin-left: -1px; background: #2B3A33; }
+  .hs { position: fixed; left: 0; top: 0; pointer-events: auto; border: 0; background: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .hs .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 12.5px/1 var(--text); color: var(--forest);
+    background: var(--bg2); box-shadow: 0 0 0 2px var(--forest), 0 3px 10px rgba(0,0,0,.18); position: relative; }
+  .hs .dot::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--forest); opacity: 0; animation: ping 2.6s ease-out infinite; }
+  .hs .tx { font: 600 12px/1 var(--text); color: var(--forest); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; white-space: nowrap; }
+  .hs.on .dot { background: var(--accent); color: var(--onaccent); box-shadow: 0 0 0 2px var(--accent), 0 3px 10px rgba(0,0,0,.2); }
+  .hs.on .dot::before { display: none; }
+  @keyframes ping { 0% { transform: scale(.8); opacity: .55; } 70%, 100% { transform: scale(1.5); opacity: 0; } }
+  .card { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); top: calc(18px + env(safe-area-inset-top, 0px)); width: 340px; pointer-events: auto;
+    background: var(--panel); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px 14px;
+    box-shadow: var(--shadow); }
+  .card .k { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .card .k i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; letter-spacing: 0; }
+  .card h2 { font-family: var(--display); font-weight: 600; font-size: 21px; margin: 8px 0 6px; color: var(--ink); }
+  .card p { margin: 0; font-size: 14px; line-height: 1.5; color: #33413A; }
+  .card .fine { margin-top: 10px; font-size: 11.5px; color: var(--muted); }
+  .card .x { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg2); cursor: pointer;
+    font: 500 18px/1 var(--text); color: var(--forest); }
+  body.is-portable .mode { display: block; }
+  #nogl { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--ink); background: var(--bg); }
+
+  @media (max-width: 900px) {
+    .groups { flex-wrap: wrap; justify-content: center; row-gap: 10px; }
+    .grp.explore { border-left: 0; padding-left: 0; width: 100%; align-items: center; }
+  }
+  @media (max-width: 640px) {
+    .dock { width: 100%; padding: 10px; border-radius: 18px; gap: 8px; }
+    .groups { flex-direction: column; gap: 8px; }
+    .grp { flex-direction: row; align-items: center; gap: 10px; }
+    .grp + .grp { border-left: 0; padding-left: 0; }
+    .grp .gt { width: 58px; flex: none; font-size: 10px; }
+    .grp.canopy { flex-wrap: wrap; }
+    .grp.canopy .seg { flex: 1; }
+    .grp.canopy input { flex-basis: 100%; margin-left: 68px; width: calc(100% - 68px); }
+    .seg button { flex: 1; padding: 10px 4px; font-size: 13px; }
+    .grp.explore { width: auto; }
+    .tools { flex: 1; }
+    .tools .tool { flex: 1; padding: 10px 4px; font-size: 13px; }
+    .desc, .hs .tx, .hint { display: none; }
+    .cwtext { min-width: 0; }
+    .card { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; top: calc(96px + env(safe-area-inset-top, 0px));
+      max-height: 34vh; overflow: auto; padding: 14px 16px 12px; }
+    .card h2 { font-size: 18px; } .card p { font-size: 13.5px; }
+    .mode { position: fixed; left: 12px; right: 12px; top: calc(96px + env(safe-area-inset-top, 0px)); text-align: center; max-width: none; font-size: 12px; }
+    .port { flex-wrap: wrap; gap: 8px; }
+    .port .tools { width: 100%; }
+    .chip { margin-top: 6px; }
+    .brand p { font-size: 14px; margin-top: 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hint { transition: none; } .hs .dot::before { animation: none; } }
+</style>
+</head>
+<body>
+
+
+<canvas id="view" tabindex="0" aria-label="Interactive 3D model of Pi-Cocoon. Drag to rotate, scroll or pinch to zoom, right-drag or two-finger drag to move."></canvas>
+<div class="lab" id="rib1" hidden>Rib 1</div>
+<div class="lab" id="rib2" hidden>Rib 2</div>
+<div class="lab" id="rib3" hidden>Rib 3</div>
+<button class="hs" data-hs="canopy" hidden aria-label="Feature 1: Three-rib retractable canopy"><span class="dot">1</span><span class="tx">Three-rib canopy</span></button>
+<button class="hs" data-hs="hinge" hidden aria-label="Feature 2: Side hinge assembly"><span class="dot">2</span><span class="tx">Side hinge</span></button>
+<button class="hs" data-hs="mattress" hidden aria-label="Feature 3: Padded mattress"><span class="dot">3</span><span class="tx">Padded mattress</span></button>
+<button class="hs" data-hs="head" hidden aria-label="Feature 4: Rounded head section"><span class="dot">4</span><span class="tx">Rounded head</span></button>
+
+<div class="ui">
+  <div class="top">
+    <div class="brand">
+      <h1><span class="pi">Pi-</span><span class="co">Cocoon</span></h1>
+      <p>Explore Your Shade in 3D</p>
+      <span class="chip">Interactive Concept Model</span>
+    </div>
+    <div class="mode" id="modeChip" hidden>Portable View · proposed clamshell concept<br>Lifted off the ground while folding, for clarity</div>
+  </div>
+  <div class="bottom">
+    <div class="hint" id="hint"><span class="mouse">Drag to rotate • Scroll to zoom • Right-drag to move • Tap a numbered dot to learn more</span><span class="touch">Drag to rotate • Pinch to zoom • Two fingers to move</span></div>
+    <div class="dock" role="group" aria-label="Viewer controls">
+      <div class="port" id="portRow" hidden>
+        <div class="st" id="stage" aria-live="polite">Stage 1 of 4 · Normal product</div>
+        <div class="tools">
+          <button class="tool primary" id="foldBtn">Fold for carrying</button>
+          <button class="tool" id="unfoldBtn">Unfold product</button>
+          <button class="tool" id="pauseBtn" aria-pressed="false">Pause</button>
+        </div>
+      </div>
+      <div class="groups">
+        <div class="grp colour">
+          <span class="gt">Product colour</span>
+          <div class="row" role="radiogroup" aria-label="Product colour (proposed variations)">
+            <button class="sw" data-cw="forest" role="radio" aria-checked="true" aria-label="Forest Green, Signature" style="--c:#2F5D46"></button>
+            <button class="sw" data-cw="sand" role="radio" aria-checked="false" aria-label="Sand Beige, Coastal" style="--c:#CAB492"></button>
+            <button class="sw" data-cw="ocean" role="radio" aria-checked="false" aria-label="Ocean Blue, Coastal Blue" style="--c:#3C6281"></button>
+            <div class="cwtext"><b id="cwName">Forest Green</b><span><span id="cwTag">Signature</span> · proposed</span></div>
+          </div>
+        </div>
+        <div class="grp canopy">
+          <span class="gt">Canopy position</span>
+          <div class="seg" role="group" aria-label="Canopy position">
+            <button id="s-folded" data-state="folded" aria-pressed="false">Folded</button>
+            <button id="s-half" data-state="half" aria-pressed="false">Half-open</button>
+            <button id="s-full" data-state="full" aria-pressed="true">Fully open</button>
+          </div>
+          <input type="range" id="canopyPos" min="0" max="200" step="1" value="200" aria-label="Canopy position, from folded to fully open">
+          <p class="desc" id="stateDesc">Ribs 1, 2 and 3 apart · 3 visible frames</p>
+        </div>
+        <div class="grp explore">
+          <span class="gt">Explore</span>
+          <div class="tools">
+            <button class="tool" id="labels" aria-pressed="true">Labels</button>
+            <button class="tool" id="portable" aria-pressed="false">Portable View</button>
+            <button class="tool" id="reset">Reset View</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<aside class="card" id="card" hidden aria-live="polite">
+  <button class="x" id="cardClose" aria-label="Close">×</button>
+  <div class="k"><i id="cardNum">1</i>Feature</div>
+  <h2 id="cardTitle"></h2>
+  <p id="cardBody"></p>
+  <p class="fine">Proposed design concept, shown as a 3D model. Not a physically tested product.</p>
+</aside>
+<div id="nogl" hidden><p>This 3D viewer needs WebGL 2. Please open it in an up-to-date Chrome, Safari, Edge or Firefox.</p></div>
+
+<script>
+/* Pi-Cocoon procedural geometry (pure JS, no dependencies).
+ * Units: centimetres. Axes: x = along the mat (head tip at x = 0, foot end at x = L), y = across, z = up.
+ * Edit the numbers in PC below to change the product; the viewer and the GLB export both read them.
+ *
+ * Parts and the group each one moves with:
+ *   root  : head half (plate + quilted pad), three ribs, canopy fabric, hinge housings, strap, buckle, handle
+ *   upper : upper foot leaf (quilted sleeping surface) - folds UP and over the head half about the upper pins
+ *   lower : lower foot leaf (ground side)                - folds DOWN and under the head half about the lower fabric hinge
+ */
+(function (root) {
+  const PC = {
+    L: 210, W: 120, TH: 6.5,          // total mat length (head tip -> foot end), width, padded thickness
+    HEAD: 105,                        // depth of the rounded head section; the hinge line is HEAD cm from the head tip
+    BASE_H: 1.2,                      // dark low-profile base layer
+    LEAF_T: 3.25,                     // each foot leaf is half the mat thickness
+    QUILT: [8, 5],                    // quilted squares along / across (a quilt line falls on the hinge line)
+    RIB_A: 60, RIB_B: 103.8,          // U-shaped rib: half-span (= half the mat width) and reach (HEAD minus the tube radius, so a flat rib traces the head outline without poking past it)
+    HUB_X: 105, HUB_Z: 8.0,           // shared transverse hinge axis for all three ribs (one housing on each side)
+    UPPER_PIVOT_Z: 9.5,               // upper-leaf pins, 1.5 cm above the rib axis so the closed leaf clears the stacked ribs
+    LOWER_PIVOT_Z: 0.0,               // lower-leaf fabric hinge along the bottom edge
+    RIB_R: 1.2,                       // rib tube radius
+    // Rib angles in degrees from vertical; negative = swung back over the head end, positive = leaning forward.
+    // Sweep from the flat-back position = angle + 90 (Rib 2 = 100 deg standard shade, Rib 3 = 130 deg extra shade).
+    STATES: {
+      folded: [-90.0, -89.6, -89.2],  // all three stacked flat on the head section       -> 1 visible frame
+      half:   [-90.0, 10.0, 10.5],    // Rib 1 flat; Ribs 2 + 3 stacked at ~100 deg sweep -> 2 visible frames
+      full:   [-90.0, 10.0, 40.0],    // Rib 3 continues ~30 deg further (~130 deg)       -> 3 visible frames
+    },
+    COLORWAYS: {
+      forest: { name: 'Forest Green', tag: 'Signature', canopy: [0.184, 0.365, 0.275], trim: [0.93, 0.91, 0.85] },
+      sand:   { name: 'Sand Beige', tag: 'Coastal', canopy: [0.792, 0.706, 0.573], trim: [0.47, 0.40, 0.32] },
+      ocean:  { name: 'Ocean Blue', tag: 'Coastal Blue', canopy: [0.235, 0.384, 0.506], trim: [0.93, 0.91, 0.85] },
+    },
+    COLORS: {
+      rib: [0.045, 0.048, 0.055], hub: [0.075, 0.08, 0.09], button: [0.88, 0.42, 0.14],
+      mat: [0.914, 0.886, 0.827], groove: [0.80, 0.76, 0.69], base: [0.25, 0.265, 0.28], shell: [0.29, 0.30, 0.31],
+      strap: [0.13, 0.14, 0.15], buckle: [0.09, 0.095, 0.10],
+    },
+  };
+  const CARRY = { up: 180, lo: 180, lift: PC.LEAF_T + 2.1, strap: 1, handle: 1 }; // compact carrying form (rests on the buckle)
+  const FLAT = { up: 0, lo: 0, lift: 0, strap: 0, handle: 0 };
+
+  // ---------- low-level builders ----------
+  function makeMesh(name, pos, nrm, idx, opts) {
+    return Object.assign({ name, pos: new Float32Array(pos), nrm: new Float32Array(nrm), idx: new Uint32Array(idx),
+      color: [1, 1, 1], col: null, rough: 0.8, spec: 0.1, doubleSided: false, castShadow: true, group: 'root', part: '' }, opts || {});
+  }
+  function gridIndices(rows, cols, out, base) {
+    base = base || 0;
+    for (let i = 0; i < rows - 1; i++) for (let j = 0; j < cols - 1; j++) {
+      const a = base + i * cols + j, b = a + 1, c = a + cols, d = c + 1;
+      out.push(a, c, b, b, c, d);
+    }
+    return out;
+  }
+  function gridNormals(pos, rows, cols, nrm) {
+    nrm = nrm || new Float32Array(pos.length);
+    const P = (i, j, k) => pos[(i * cols + j) * 3 + k];
+    for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+      const i0 = Math.max(i - 1, 0), i1 = Math.min(i + 1, rows - 1), j0 = Math.max(j - 1, 0), j1 = Math.min(j + 1, cols - 1);
+      const du = [P(i1, j, 0) - P(i0, j, 0), P(i1, j, 1) - P(i0, j, 1), P(i1, j, 2) - P(i0, j, 2)];
+      const dv = [P(i, j1, 0) - P(i, j0, 0), P(i, j1, 1) - P(i, j0, 1), P(i, j1, 2) - P(i, j0, 2)];
+      const n = [du[2] * dv[1] - du[1] * dv[2], du[0] * dv[2] - du[2] * dv[0], du[1] * dv[0] - du[0] * dv[1]];
+      const l = Math.hypot(n[0], n[1], n[2]) || 1;
+      const o = (i * cols + j) * 3; nrm[o] = n[0] / l; nrm[o + 1] = n[1] / l; nrm[o + 2] = n[2] / l;
+    }
+    return nrm;
+  }
+  function box(name, c, s, opts) {
+    const pos = [], nrm = [], idx = [];
+    for (const [ax, sg] of [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]]) {
+      const u = (ax + 1) % 3, v = (ax + 2) % 3, b = pos.length / 3;
+      for (const [a, bb] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        const p = [0, 0, 0]; p[ax] = c[ax] + sg * s[ax] / 2; p[u] = c[u] + a * s[u] / 2; p[v] = c[v] + bb * s[v] / 2;
+        pos.push(...p); const n = [0, 0, 0]; n[ax] = sg; nrm.push(...n);
+      }
+      if (sg > 0) idx.push(b, b + 1, b + 2, b, b + 2, b + 3); else idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
+    }
+    return makeMesh(name, pos, nrm, idx, opts);
+  }
+  function cylinderY(name, c, r, h, opts, seg) {
+    seg = seg || 40;
+    const pos = [], nrm = [], idx = [];
+    for (const yy of [-h / 2, h / 2]) for (let k = 0; k <= seg; k++) {
+      const a = 2 * Math.PI * k / seg;
+      pos.push(c[0] + r * Math.cos(a), c[1] + yy, c[2] + r * Math.sin(a)); nrm.push(Math.cos(a), 0, Math.sin(a));
+    }
+    for (let k = 0; k < seg; k++) { const a = k, b = k + 1, cc = k + seg + 1, d = k + seg + 2; idx.push(a, b, cc, b, d, cc); }
+    for (const sg of [-1, 1]) {
+      const ctr = pos.length / 3; pos.push(c[0], c[1] + sg * h / 2, c[2]); nrm.push(0, sg, 0);
+      const b0 = pos.length / 3;
+      for (let k = 0; k <= seg; k++) { const a = 2 * Math.PI * k / seg; pos.push(c[0] + r * Math.cos(a), c[1] + sg * h / 2, c[2] + r * Math.sin(a)); nrm.push(0, sg, 0); }
+      for (let k = 0; k < seg; k++) sg > 0 ? idx.push(ctr, b0 + k, b0 + k + 1) : idx.push(ctr, b0 + k + 1, b0 + k);
+    }
+    return makeMesh(name, pos, nrm, idx, opts);
+  }
+  function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+  function norm(a) { const l = Math.hypot(...a) || 1; return a.map(v => v / l); }
+  function tubeAlong(pts, r, seg) {                       // tube along a polyline (parallel-transport frames)
+    seg = seg || 12;
+    const n = pts.length, pos = new Float32Array(n * (seg + 1) * 3), nrm = new Float32Array(n * (seg + 1) * 3);
+    let T = null, N = null;
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(i - 1, 0)], b = pts[Math.min(i + 1, n - 1)];
+      let t = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; const tl = Math.hypot(...t) || 1; t = t.map(v => v / tl);
+      if (!N) { const ref = Math.abs(t[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]; N = norm(cross(ref, t)); }
+      else { const B = cross(T, t); if (Math.hypot(...B) > 1e-6) N = norm(cross(t, cross(N, t))); }
+      T = t; const Bv = cross(t, N);
+      for (let k = 0; k <= seg; k++) {
+        const ang = 2 * Math.PI * k / seg, cs = Math.cos(ang), sn = Math.sin(ang);
+        const d = [N[0] * cs + Bv[0] * sn, N[1] * cs + Bv[1] * sn, N[2] * cs + Bv[2] * sn];
+        const o = (i * (seg + 1) + k) * 3;
+        pos[o] = pts[i][0] + r * d[0]; pos[o + 1] = pts[i][1] + r * d[1]; pos[o + 2] = pts[i][2] + r * d[2];
+        nrm[o] = d[0]; nrm[o + 1] = d[1]; nrm[o + 2] = d[2];
+      }
+    }
+    return { pos, nrm, rows: n, cols: seg + 1 };
+  }
+  function extrude(name, poly, z0, z1, opts) {            // convex polygon -> plate with top, underside and side wall
+    const pos = [], nrm = [], idx = [], n = poly.length;
+    let cx = 0, cy = 0; poly.forEach(p => { cx += p[0] / n; cy += p[1] / n; });
+    const addTri = (A, B, C, want) => {
+      const u = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], v = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
+      let nn = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      const m = [(A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3, (A[2] + B[2] + C[2]) / 3], w = want(m);
+      if (nn[0] * w[0] + nn[1] * w[1] + nn[2] * w[2] < 0) { const t = B; B = C; C = t; nn = nn.map(q => -q); }
+      const l = Math.hypot(...nn) || 1, b = pos.length / 3;
+      [A, B, C].forEach(P => { pos.push(...P); nrm.push(nn[0] / l, nn[1] / l, nn[2] / l); }); idx.push(b, b + 1, b + 2);
+    };
+    for (let i = 0; i < n; i++) {
+      const p = poly[i], q = poly[(i + 1) % n], out = m => [m[0] - cx, m[1] - cy, 0];
+      addTri([cx, cy, z1], [p[0], p[1], z1], [q[0], q[1], z1], () => [0, 0, 1]);
+      addTri([cx, cy, z0], [p[0], p[1], z0], [q[0], q[1], z0], () => [0, 0, -1]);
+      addTri([p[0], p[1], z0], [q[0], q[1], z0], [q[0], q[1], z1], out); addTri([p[0], p[1], z0], [q[0], q[1], z1], [p[0], p[1], z1], out);
+    }
+    return makeMesh(name, pos, nrm, idx, opts);
+  }
+
+  // ---------- padded pieces ----------
+  // Rounded quarter-ellipse edge profile: 0 at the edge, 1 at distance >= R inside it.
+  const SMOOTH = t => Math.sqrt(Math.max(0, 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 2)));
+  const HALF = () => PC.W / 2;
+  function headOutlineDist(x, y) {                         // distance inside the half-ellipse head outline
+    const e = Math.sqrt(Math.pow((x - PC.HEAD) / PC.HEAD, 2) + Math.pow(y / HALF(), 2));
+    return Math.max(0, 1 - e) * HALF() * 0.92;
+  }
+  // One quilted / padded surface. d = distance to the outer outline, ds = distance to the hinge seam.
+  function padHeight(x, y, d, ds, o) {
+    const pw = PC.L / PC.QUILT[0], ph = PC.W / PC.QUILT[1];
+    const p = Math.min(SMOOTH(d / o.R), SMOOTH(ds / o.Rs)), k = Math.min(1, d / o.R, ds / o.Rs);
+    let z = o.H * p, g = 0;
+    if (o.quilt) {
+      const gx = Math.abs(((x + pw / 2) % pw) - pw / 2), gy = Math.abs(((y + HALF() + ph / 2) % ph) - ph / 2);
+      g = Math.max(Math.exp(-Math.pow(gx / 1.9, 2)), Math.exp(-Math.pow(gy / 1.9, 2))) * k;
+      const puff = 1.1 * Math.sin(Math.PI * ((x % pw) / pw)) * Math.sin(Math.PI * (((y + HALF()) % ph) / ph)) * k;
+      z = Math.max(0.15 * p, z - 1.9 * g + puff);
+    }
+    return { z: o.zb + z, g };
+  }
+  // kind 'head': polar grid over the half-ellipse; kind 'leaf': rectangle from the hinge line to the foot end.
+  function padMesh(name, o) {
+    const a = HALF(), HX = PC.HEAD, pos = [], col = [], idx = [];
+    let rows, cols, sample;
+    if (o.kind === 'head') {
+      rows = 81; cols = 193;
+      sample = (i, j) => { const rho = i / (rows - 1), th = Math.PI * j / (cols - 1); return [HX - PC.HEAD * rho * Math.sin(th), a * rho * Math.cos(th)]; };
+    } else {
+      rows = Math.round((PC.L - HX) / o.step) + 1; cols = Math.round(2 * a / (o.step * 0.75)) + 1;
+      sample = (i, j) => [HX + (PC.L - HX) * i / (rows - 1), -a + 2 * a * j / (cols - 1)];
+    }
+    const dist = (x, y) => o.kind === 'head' ? [headOutlineDist(x, y), HX - x] : [Math.min(PC.L - x, a - Math.abs(y)), x - HX];
+    const hAt = (x, y) => { const [d, ds] = dist(x, y); return padHeight(x, y, Math.max(0, d), Math.max(0, ds), o); };
+    for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+      const [x, y] = sample(i, j), h = hAt(x, y), [d] = dist(x, y);
+      pos.push(x, y, h.z); col.push(...o.color(x, y, d, h.g));
+    }
+    gridIndices(rows, cols, idx, 0);
+    const p = new Float32Array(pos), n = new Float32Array(pos.length), e = 0.35;
+    for (let v = 0; v < p.length; v += 3) {               // normals from the height field
+      const x = p[v], y = p[v + 1];
+      const zx = (hAt(x + e, y).z - hAt(x - e, y).z) / (2 * e), zy = (hAt(x, y + e).z - hAt(x, y - e).z) / (2 * e);
+      const l = Math.hypot(zx, zy, 1); n[v] = -zx / l; n[v + 1] = -zy / l; n[v + 2] = 1 / l;
+    }
+    const faceUp = (ix, P, up) => {                        // make every triangle face up (or down)
+      for (let t = 0; t < ix.length; t += 3) {
+        const A = ix[t] * 3, B = ix[t + 1] * 3, C = ix[t + 2] * 3;
+        const cz = (P[B] - P[A]) * (P[C + 1] - P[A + 1]) - (P[B + 1] - P[A + 1]) * (P[C] - P[A]);
+        if ((cz < 0) === up) { const s = ix[t + 1]; ix[t + 1] = ix[t + 2]; ix[t + 2] = s; }
+      }
+    };
+    faceUp(idx, p, true);
+    let P = p, N = n, C = new Float32Array(col), I = idx;
+    if (o.bottom) {                                        // flat underside at zb (same grid, so the edges match)
+      const nv = p.length / 3, P2 = new Float32Array(p.length * 2), N2 = new Float32Array(p.length * 2), C2 = new Float32Array(p.length * 2);
+      P2.set(p); N2.set(n); C2.set(C);
+      for (let v = 0; v < nv; v++) { P2[(nv + v) * 3] = p[v * 3]; P2[(nv + v) * 3 + 1] = p[v * 3 + 1]; P2[(nv + v) * 3 + 2] = o.zb; N2[(nv + v) * 3 + 2] = -1; C2.set(o.bottom, (nv + v) * 3); }
+      const bi = gridIndices(rows, cols, [], nv); faceUp(bi, P2, false);
+      P = P2; N = N2; C = C2; I = idx.concat(bi);
+    }
+    return makeMesh(name, P, N, I, Object.assign({ col: C, rough: 0.95, spec: 0.03 }, o.mesh));
+  }
+  function quiltColor(x, y, d, g) {
+    const t = Math.min(1, g * 0.8), m = PC.COLORS.mat, gr = PC.COLORS.groove;
+    return [m[0] * (1 - t) + gr[0] * t, m[1] * (1 - t) + gr[1] * t, m[2] * (1 - t) + gr[2] * t];
+  }
+  function headPad() {
+    return padMesh('Padded mattress - rounded head section', { kind: 'head', zb: PC.BASE_H, H: PC.TH - PC.BASE_H, R: 6, Rs: 2.5, quilt: true, color: quiltColor,
+      mesh: { part: 'head', pad: true } });
+  }
+  function upperLeaf() {
+    return padMesh('Upper foot leaf (quilted sleeping surface)', { kind: 'leaf', step: 1.0, zb: PC.LEAF_T, H: PC.TH - PC.LEAF_T, R: 6, Rs: 2.5, quilt: true,
+      color: quiltColor, bottom: PC.COLORS.shell, mesh: { group: 'upper', part: 'leaf', pad: true } });
+  }
+  function lowerLeaf() {
+    const m = PC.COLORS.mat, rim = [m[0] * 0.94, m[1] * 0.94, m[2] * 0.94];
+    return padMesh('Lower foot leaf (ground side)', { kind: 'leaf', step: 1.5, zb: PC.BASE_H, H: PC.LEAF_T - PC.BASE_H, R: 2.2, Rs: 2.2, quilt: false,
+      color: (x, y, d) => (d < 2.0 || x - PC.HEAD < 2.0) ? rim : PC.COLORS.shell, mesh: { group: 'lower', part: 'leaf', pad: true } });
+  }
+  function headPlate() {
+    const a = HALF() + 0.6, D = PC.HEAD + 0.6, pts = [];
+    for (let k = 0; k <= 72; k++) { const th = Math.PI * k / 72; pts.push([PC.HEAD - D * Math.sin(th), a * Math.cos(th)]); }
+    return extrude('Low-profile base - head section', pts, 0, PC.BASE_H, { color: PC.COLORS.base, rough: 0.7, spec: 0.08, part: 'head' });
+  }
+  function lowerPlate() {
+    const a = HALF() + 0.6;
+    return extrude('Low-profile base - foot section', [[PC.HEAD, -a], [PC.L + 0.6, -a], [PC.L + 0.6, a], [PC.HEAD, a]], 0, PC.BASE_H,
+      { color: PC.COLORS.base, rough: 0.7, spec: 0.08, group: 'lower', part: 'leaf' });
+  }
+
+  // ---------- canopy ----------
+  function ribPoints(phiDeg, nt) {
+    nt = nt || 72;
+    const ph = phiDeg * Math.PI / 180, pts = [];
+    for (let k = 0; k < nt; k++) {
+      const t = Math.PI * k / (nt - 1), u = PC.RIB_B * Math.sin(t);
+      pts.push([PC.HUB_X + u * Math.sin(ph), PC.RIB_A * Math.cos(t), PC.HUB_Z + u * Math.cos(ph)]);
+    }
+    return pts;
+  }
+  function ribMesh(i, phiDeg) {
+    const tb = tubeAlong(ribPoints(phiDeg), PC.RIB_R, 12);
+    return makeMesh('Rib ' + (i + 1) + ' (U-shaped structural frame)', tb.pos, tb.nrm, gridIndices(tb.rows, tb.cols, []),
+      { color: PC.COLORS.rib, rough: 0.35, spec: 0.5, dynamic: true, rib: i, part: 'canopy' });
+  }
+  function updateRib(mesh, phiDeg) { const tb = tubeAlong(ribPoints(phiDeg), PC.RIB_R, 12); mesh.pos.set(tb.pos); mesh.nrm.set(tb.nrm); }
+
+  const FAB = { nt: 96, nseg: 24 };
+  function fabricPositions(angs, pos) {
+    const nt = FAB.nt, ns = FAB.nseg; let o = 0;
+    for (let i = 0; i < 2; i++) {
+      const a0 = angs[i] * Math.PI / 180, a1 = angs[i + 1] * Math.PI / 180;
+      const sag0 = 0.03 * Math.min(Math.abs(angs[i + 1] - angs[i]) / 40, 1);
+      for (let r = 0; r < (i === 0 ? ns : ns + 1); r++) {
+        const f = r / ns, ph = a0 + f * (a1 - a0), sag = sag0 * Math.sin(Math.PI * f);
+        for (let k = 0; k < nt; k++) {
+          const t = Math.PI * k / (nt - 1), y = PC.RIB_A * Math.cos(t) * (1 - 0.25 * sag), u = PC.RIB_B * Math.sin(t) * (1 - sag);
+          pos[o++] = PC.HUB_X + u * Math.sin(ph); pos[o++] = y; pos[o++] = PC.HUB_Z + u * Math.cos(ph);
+        }
+      }
+    }
+    return pos;
+  }
+  function fabricColors(key, col) {
+    const cw = PC.COLORWAYS[key] || PC.COLORWAYS.forest, rows = 2 * FAB.nseg + 1, nt = FAB.nt;
+    col = col || new Float32Array(rows * nt * 3);
+    for (let r = 0; r < rows; r++) {
+      const c = (r >= FAB.nseg && (r - FAB.nseg) / FAB.nseg > 0.93) ? cw.trim : cw.canopy;   // binding on the front edge
+      for (let k = 0; k < nt; k++) col.set(c, (r * nt + k) * 3);
+    }
+    return col;
+  }
+  function fabricMesh(angs, key) {
+    const rows = 2 * FAB.nseg + 1, nt = FAB.nt, pos = new Float32Array(rows * nt * 3);
+    fabricPositions(angs, pos);
+    return makeMesh('Canopy fabric (two panels between the three ribs)', pos, gridNormals(pos, rows, nt), gridIndices(rows, nt, []),
+      { col: fabricColors(key), rough: 0.85, spec: 0.06, doubleSided: true, dynamic: true, fabric: true, rows, cols: nt, part: 'canopy' });
+  }
+  function updateFabric(mesh, angs) { fabricPositions(angs, mesh.pos); gridNormals(mesh.pos, mesh.rows, mesh.cols, mesh.nrm); }
+
+  // ---------- hardware ----------
+  function hinges() {
+    const out = [], A = PC.RIB_A, hw = { part: 'hinge', rough: 0.45, spec: 0.3 };
+    for (const s of [-1, 1]) {
+      const side = s < 0 ? 'right' : 'left';
+      out.push(cylinderY('Hinge housing ' + side, [PC.HUB_X, s * (A + 2.4), PC.HUB_Z], 3.2, 4.6, Object.assign({ color: PC.COLORS.hub }, hw)));
+      out.push(cylinderY('Hinge release knob ' + side, [PC.HUB_X, s * (A + 5.6), PC.HUB_Z], 1.2, 2.2, Object.assign({ color: PC.COLORS.button }, hw)));
+      out.push(box('Hinge mount ' + side, [PC.HUB_X - 3, s * (A + 2.5), 3.0], [6, 5.0, 6.0], Object.assign({ color: PC.COLORS.hub }, hw)));
+      out.push(box('Upper-leaf hinge link ' + side, [PC.HUB_X + 3.0, s * (A + 0.7), (PC.LEAF_T + PC.UPPER_PIVOT_Z + 0.8) / 2],
+        [7.0, 0.9, PC.UPPER_PIVOT_Z + 0.8 - PC.LEAF_T], Object.assign({ color: PC.COLORS.hub, group: 'upper' }, hw)));
+    }
+    return out;
+  }
+  function stakeTabs() {
+    return [-1, 1].map(s => box('Ground-stake tab', [PC.L - 2, s * (HALF() + 2.5), 0.6], [6, 5, 1.2], { color: PC.COLORS.base, rough: 0.7, group: 'lower', part: 'leaf' }));
+  }
+
+  // ---------- carrying strap, buckle and handle (only shown in the compact form) ----------
+  // Folded bundle cross-section (root coordinates, before the final lift): bottom at -LEAF_T, top at 2*UPPER_PIVOT_Z - LEAF_T.
+  function bundleBox() { return { x0: 0, x1: PC.HEAD, top: 2 * PC.UPPER_PIVOT_Z - PC.LEAF_T, bot: -PC.LEAF_T, half: HALF() + 0.6 }; }
+  const STRAP = { n: 70, w: 6.0, off: 0.35, rc: 1.6, gap: 5.5 };
+  function strapHalfPath() {                               // centre-top -> side -> under, for +y; rounded corners
+    const b = bundleBox(), o = STRAP.off, Y = b.half + o, T = b.top + o, B = b.bot - o, rc = STRAP.rc, pts = [[0, T]];
+    pts.push([Y - rc, T]);
+    for (let k = 1; k <= 6; k++) { const a = Math.PI / 2 * k / 6; pts.push([Y - rc + rc * Math.sin(a), T - rc + rc * Math.cos(a)]); }
+    pts.push([Y, B + rc]);
+    for (let k = 1; k <= 6; k++) { const a = Math.PI / 2 * k / 6; pts.push([Y - rc + rc * Math.cos(a), B + rc - rc * Math.sin(a)]); }
+    pts.push([STRAP.gap, B]);
+    const len = [0]; for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    return { pts, len };
+  }
+  function samplePath(path, s) {
+    const { pts, len } = path; let i = 1; while (i < len.length - 1 && len[i] < s) i++;
+    const f = Math.min(1, Math.max(0, (s - len[i - 1]) / Math.max(1e-6, len[i] - len[i - 1])));
+    const p = [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f];
+    const t = norm([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1], 0]);
+    return { p, nrm: [t[1], -t[0]] };                       // outward normal in the y-z plane
+  }
+  function strapPositions(mesh, s) {
+    const path = strapHalfPath(), total = path.len[path.len.length - 1], b = bundleBox();
+    const visible = (b.half + STRAP.off) + 3 + Math.max(0, s) * (total - (b.half + STRAP.off) - 3);
+    const xc = (b.x0 + b.x1) / 2, n = STRAP.n, cols = 2 * n - 1;
+    for (let j = 0; j < cols; j++) {
+      const k = j - (n - 1), sg = k < 0 ? -1 : 1, q = samplePath(path, visible * Math.abs(k) / (n - 1));
+      for (let r = 0; r < 2; r++) {
+        const o = (r * cols + j) * 3;
+        mesh.pos[o] = xc + (r ? 1 : -1) * STRAP.w / 2; mesh.pos[o + 1] = sg * q.p[0]; mesh.pos[o + 2] = q.p[1];
+        mesh.nrm[o] = 0; mesh.nrm[o + 1] = sg * q.nrm[0]; mesh.nrm[o + 2] = q.nrm[1];
+      }
+    }
+  }
+  function strapMesh() {
+    const cols = 2 * STRAP.n - 1, m = makeMesh('Carrying strap (proposed)', new Float32Array(2 * cols * 3), new Float32Array(2 * cols * 3), gridIndices(2, cols, []),
+      { color: PC.COLORS.strap, rough: 0.8, spec: 0.08, doubleSided: true, dynamic: true, part: 'strap' });
+    strapPositions(m, 0); return m;
+  }
+  function buckleMeshes() {
+    const b = bundleBox(), xc = (b.x0 + b.x1) / 2, z = b.bot - STRAP.off - 0.75;
+    return [box('Strap buckle (proposed)', [xc, 0, z], [STRAP.w + 1.4, 2 * STRAP.gap + 2, 1.5], { color: PC.COLORS.buckle, rough: 0.4, spec: 0.3, part: 'strap' }),
+      box('Buckle release tab', [xc, 0, z - 0.75], [3.2, 3.2, 0.5], { color: PC.COLORS.button, rough: 0.5, spec: 0.3, part: 'strap' })];
+  }
+  function handlePoints(h) {
+    const pts = [], X = PC.HEAD + 0.3, n = 28;
+    for (let k = 0; k < n; k++) {
+      const t = Math.PI * k / (n - 1);
+      pts.push([X + 7.5 * h * Math.sin(t), -12 * Math.cos(t), 3.6 - 1.6 * h * Math.sin(t)]);
+    }
+    return pts;
+  }
+  function handleMesh() {
+    const tb = tubeAlong(handlePoints(1), 0.9, 10);
+    return makeMesh('Carry handle on the spine (optional)', tb.pos, tb.nrm, gridIndices(tb.rows, tb.cols, []),
+      { color: PC.COLORS.strap, rough: 0.75, spec: 0.1, dynamic: true, part: 'strap' });
+  }
+
+  // ---------- group transforms (column-major 4x4) ----------
+  function rotY(thetaDeg, px, pz, lift) {                  // rotate in the x-z plane (+x towards +z) about (px, pz), then lift
+    const t = thetaDeg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    return new Float32Array([c, 0, s, 0, 0, 1, 0, 0, -s, 0, c, 0, px - (c * px - s * pz), 0, pz - (s * px + c * pz) + lift, 1]);
+  }
+  function groupMatrices(f) {
+    f = f || FLAT;
+    return { root: rotY(0, 0, 0, f.lift), upper: rotY(f.up, PC.HEAD, PC.UPPER_PIVOT_Z, f.lift), lower: rotY(-f.lo, PC.HEAD, PC.LOWER_PIVOT_Z, f.lift) };
+  }
+
+  // ---------- assembly ----------
+  function anglesAt(v) {                                   // canopy slider 0 = folded, 100 = half-open, 200 = fully open
+    const S = PC.STATES, lerp = (a, b, t) => a.map((x, k) => x + (b[k] - x) * t);
+    v = Math.min(200, Math.max(0, v));
+    return v <= 100 ? lerp(S.folded, S.half, v / 100) : lerp(S.half, S.full, (v - 100) / 100);
+  }
+  function buildProduct(state, colorway) {
+    const angs = PC.STATES[state || 'full'].slice();
+    const ribs = angs.map((a, i) => ribMesh(i, a)), fabric = fabricMesh(angs, colorway || 'forest');
+    const strap = strapMesh(), buckle = buckleMeshes(), handle = handleMesh();
+    strap.hidden = true; buckle.forEach(m => { m.hidden = true; }); handle.hidden = true;
+    const meshes = [headPlate(), headPad(), lowerPlate(), lowerLeaf(), upperLeaf(), fabric, ...ribs, ...hinges(), ...stakeTabs(), strap, ...buckle, handle];
+    return { meshes, ribs, fabric, strap, buckle, handle, angs, fold: Object.assign({}, FLAT) };
+  }
+  function setAngles(product, angs) {
+    product.angs = angs.slice();
+    product.ribs.forEach((m, i) => updateRib(m, angs[i]));
+    updateFabric(product.fabric, angs);
+  }
+  function setColorway(product, key) { fabricColors(key, product.fabric.col); }
+  function setFold(product, f) {                           // updates the strap / handle meshes; returns the group matrices
+    product.fold = Object.assign({}, f);
+    product.strap.hidden = !(f.strap > 0.001);
+    if (!product.strap.hidden) strapPositions(product.strap, f.strap);
+    product.buckle.forEach(m => { m.hidden = !(f.strap > 0.985); });
+    product.handle.hidden = !(f.handle > 0.001);
+    if (!product.handle.hidden) { const tb = tubeAlong(handlePoints(f.handle), 0.9, 10); product.handle.pos.set(tb.pos); product.handle.nrm.set(tb.nrm); }
+    return groupMatrices(f);
+  }
+  function ribApex(phiDeg) { return ribPoints(phiDeg, 3)[1]; }
+  function xformPoint(m, p) { return [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]]; }
+  function bakedMeshes(product) {                          // world-space copies (for GLB export and checks)
+    const G = groupMatrices(product.fold);
+    return product.meshes.filter(m => !m.hidden).map(m => {
+      const M = G[m.group], P = new Float32Array(m.pos.length), N = new Float32Array(m.nrm.length);
+      for (let i = 0; i < m.pos.length; i += 3) {
+        const p = xformPoint(M, [m.pos[i], m.pos[i + 1], m.pos[i + 2]]); P.set(p, i);
+        const n = [M[0] * m.nrm[i] + M[4] * m.nrm[i + 1] + M[8] * m.nrm[i + 2], M[1] * m.nrm[i] + M[5] * m.nrm[i + 1] + M[9] * m.nrm[i + 2], M[2] * m.nrm[i] + M[6] * m.nrm[i + 1] + M[10] * m.nrm[i + 2]];
+        N.set(n, i);
+      }
+      return Object.assign({}, m, { pos: P, nrm: N });
+    });
+  }
+
+  root.PiCocoon = { PC, CARRY, FLAT, buildProduct, setAngles, setColorway, setFold, groupMatrices, anglesAt, ribApex, xformPoint, bakedMeshes, bundleBox };
+  if (typeof module !== 'undefined') module.exports = root.PiCocoon;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Pi-Cocoon 3D viewer: WebGL2 renderer, orbit controls, canopy animation, colourways, feature hotspots and the
+ * clamshell Portable View. Depends only on geometry.js (window.PiCocoon). */
+(function () {
+  const PCm = window.PiCocoon, { PC } = PCm;
+  const $ = id => document.getElementById(id);
+  const canvas = $('view');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true });
+  if (!gl) { $('nogl').hidden = false; return; }
+
+  // ---------- math ----------
+  const V = {
+    sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+    mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+    cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+    norm: a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  };
+  function lookAt(e, t, up) {
+    const f = V.norm(V.sub(t, e)), s = V.norm(V.cross(f, up)), u = V.cross(s, f);
+    return new Float32Array([s[0], u[0], -f[0], 0, s[1], u[1], -f[1], 0, s[2], u[2], -f[2], 0, -V.dot(s, e), -V.dot(u, e), V.dot(f, e), 1]);
+  }
+  function persp(fovy, asp, n, f) { const t = 1 / Math.tan(fovy / 2); return new Float32Array([t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]); }
+  function ortho(l, r, b, t, n, f) { return new Float32Array([2 / (r - l), 0, 0, 0, 0, 2 / (t - b), 0, 0, 0, 0, -2 / (f - n), 0, -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1]); }
+  function mmul(a, b) {
+    const o = new Float32Array(16);
+    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; }
+    return o;
+  }
+  function project(m, p) {
+    const x = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], y = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13],
+      w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
+    return [x / w, y / w, w];
+  }
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const clamp01 = t => Math.min(1, Math.max(0, t));
+
+  // ---------- shaders ----------
+  const VS = `#version 300 es
+  in vec3 aPos; in vec3 aNrm; in vec3 aCol;
+  uniform mat4 uVP; uniform mat4 uLVP; uniform mat4 uModel;
+  out vec3 vPos; out vec3 vNrm; out vec3 vCol; out vec4 vSh;
+  void main(){ vec4 w = uModel * vec4(aPos, 1.0); vPos = w.xyz; vNrm = mat3(uModel) * aNrm; vCol = aCol; vSh = uLVP * w; gl_Position = uVP * w; }`;
+  const FS = `#version 300 es
+  precision highp float; precision highp sampler2DShadow;
+  in vec3 vPos; in vec3 vNrm; in vec3 vCol; in vec4 vSh;
+  uniform vec3 uEye; uniform vec3 uSun; uniform sampler2DShadow uShadow; uniform vec2 uTexel;
+  uniform float uRough; uniform float uSpec; uniform float uTrans; uniform float uHi; uniform int uGround;
+  uniform vec2 uMatC; uniform vec2 uMatH; uniform float uAO;
+  out vec4 o;
+  float shadowAt(float bias){
+    vec3 p = vSh.xyz / vSh.w * 0.5 + 0.5; p.z -= bias;
+    if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0) return 1.0;
+    float s = 0.0;
+    for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++) s += texture(uShadow, vec3(p.xy + vec2(float(i), float(j)) * uTexel * 1.6, p.z));
+    return s / 25.0;
+  }
+  void main(){
+    if (uGround == 1) {
+      float sh = shadowAt(0.0015);
+      vec2 q = vPos.xy - uMatC;
+      float dist;
+      if (vPos.x >= uMatH.x) { vec2 dd = abs(vec2(vPos.x - (uMatH.x + uMatH.y) * 0.5, vPos.y)) - vec2(max(uMatH.y - uMatH.x, 0.0) * 0.5, uMatC.y); dist = length(max(dd, 0.0)) + min(max(dd.x, dd.y), 0.0); }
+      else { float e = length(vec2((vPos.x - uMatH.x) / uMatH.x, vPos.y / uMatC.y)); dist = (e - 1.0) * uMatC.y * 0.92; }
+      float ao = exp(-max(dist, 0.0) / 5.0) * 0.55 * uAO;
+      float fade = 1.0 - smoothstep(190.0, 480.0, length(q));
+      float a = clamp((1.0 - sh) * 0.32 + ao * 0.45, 0.0, 0.55) * fade;
+      o = vec4(vec3(0.09, 0.12, 0.10) * a, a); return;
+    }
+    vec3 n = normalize(vNrm); if (!gl_FrontFacing) n = -n;
+    vec3 v = normalize(uEye - vPos);
+    vec3 base = pow(vCol, vec3(2.2));
+    float ndl = dot(n, uSun);
+    float sh = shadowAt(0.0008 + 0.0025 * (1.0 - clamp(abs(ndl), 0.0, 1.0)));
+    float hemi = 0.5 + 0.5 * n.z;
+    vec3 amb = base * mix(vec3(0.66, 0.60, 0.50), vec3(0.50, 0.53, 0.56), hemi);
+    vec3 dif = base * vec3(1.05, 1.0, 0.94) * max(ndl, 0.0) * sh * 1.45;
+    vec3 tr = base * uTrans * max(-ndl, 0.0) * sh * 0.9;
+    vec3 h = normalize(uSun + v);
+    float sp = pow(max(dot(n, h), 0.0), mix(10.0, 80.0, 1.0 - uRough)) * uSpec * sh * step(0.0, ndl);
+    float fr = 1.0 - max(dot(n, v), 0.0);
+    float rim = pow(fr, 3.0) * 0.06;
+    vec3 c = amb + dif + tr + vec3(sp) + rim * vec3(0.55, 0.6, 0.65);
+    c += uHi * (0.30 * base + vec3(0.025)) * (0.55 + 1.2 * pow(fr, 2.0));   // hue-preserving glow (keeps the colourway)
+    c = c * (1.0 + c / 4.0) / (1.0 + c);
+    o = vec4(pow(c * 1.25, vec3(1.0 / 2.2)), 1.0);
+  }`;
+  const SVS = `#version 300 es
+  in vec3 aPos; uniform mat4 uLVP; uniform mat4 uModel; void main(){ gl_Position = uLVP * uModel * vec4(aPos, 1.0); }`;
+  const SFS = `#version 300 es
+  precision mediump float; out vec4 o; void main(){ o = vec4(1.0); }`;
+  function prog(vs, fs) {
+    const p = gl.createProgram();
+    for (const [t, s] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+      const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+      gl.attachShader(p, sh);
+    }
+    gl.bindAttribLocation(p, 0, 'aPos'); gl.bindAttribLocation(p, 1, 'aNrm'); gl.bindAttribLocation(p, 2, 'aCol');
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const P = prog(VS, FS), SP = prog(SVS, SFS);
+  const u = {}; ['uVP', 'uLVP', 'uModel', 'uEye', 'uSun', 'uShadow', 'uTexel', 'uRough', 'uSpec', 'uTrans', 'uHi', 'uGround', 'uMatC', 'uMatH', 'uAO'].forEach(n => { u[n] = gl.getUniformLocation(P, n); });
+  const su = { LVP: gl.getUniformLocation(SP, 'uLVP'), Model: gl.getUniformLocation(SP, 'uModel') };
+  const ID = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+
+  // ---------- scene ----------
+  let colorway = 'forest';
+  const product = PCm.buildProduct('full', colorway);
+  function upload(m) {
+    m.vao = gl.createVertexArray(); gl.bindVertexArray(m.vao);
+    const usage = m.dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW;
+    m.bp = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.bp); gl.bufferData(gl.ARRAY_BUFFER, m.pos, usage);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    m.bn = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.bn); gl.bufferData(gl.ARRAY_BUFFER, m.nrm, usage);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+    if (m.col) { m.bc = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.bc); gl.bufferData(gl.ARRAY_BUFFER, m.col, gl.DYNAMIC_DRAW); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0); }
+    else gl.disableVertexAttribArray(2);
+    m.bi = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.bi); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, m.idx, gl.STATIC_DRAW);
+    m.count = m.idx.length; m.hi = 0; gl.bindVertexArray(null);
+  }
+  function reupload(m) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.bp); gl.bufferSubData(gl.ARRAY_BUFFER, 0, m.pos);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.bn); gl.bufferSubData(gl.ARRAY_BUFFER, 0, m.nrm);
+  }
+  product.meshes.forEach(upload);
+  const CX = PC.HEAD, GS = 1400, ground = { pos: new Float32Array([CX - GS, -GS, 0, CX + GS, -GS, 0, CX + GS, GS, 0, CX - GS, GS, 0]), nrm: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]), idx: new Uint32Array([0, 1, 2, 0, 2, 3]), color: [1, 1, 1] };
+  upload(ground);
+  let G = PCm.groupMatrices(PCm.FLAT);
+
+  // shadow map
+  const SM = 2048;
+  const smTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, smTex);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, SM, SM);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const smFB = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, smFB);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, smTex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const SUN = V.norm([0.25, -0.50, 0.82]);
+  const LC = [PC.HEAD, 0, 40];
+  const LVP = mmul(ortho(-220, 220, -220, 220, 50, 1200), lookAt(V.add(LC, V.mul(SUN, 560)), LC, [0, 0, 1]));
+  let shadowDirty = true;
+
+  // ---------- camera / orbit controls ----------
+  const HOME = { target: [PC.HEAD + 8, 0, 32], theta: -0.55, phi: 1.12, r: 540 };
+  const VIEWS = { normal: HOME, portable: { target: [PC.HEAD - 5, 0, 55], theta: -0.62, phi: 1.18, r: 700 }, bundle: { target: [PC.HEAD / 2 + 6, 0, 10], theta: -0.62, phi: 1.02, r: 440 } };
+  const cam = { target: HOME.target.slice(), theta: HOME.theta, phi: HOME.phi, r: HOME.r, fov: 32 * Math.PI / 180 };
+  const vel = { theta: 0, phi: 0 };
+  let dragging = false, tween = null, userMoved = false;
+  let inset = { top: 0, bottom: 0 };                       // screen space taken by the header and the control dock
+  function measureInsets() {
+    const H = canvas.clientHeight || 1, b = document.querySelector('.brand'), d = document.querySelector('.dock');
+    inset = { top: b ? b.getBoundingClientRect().bottom : 0, bottom: d ? H - d.getBoundingClientRect().top : 0 };
+  }
+  const fitR = r => {
+    const W = canvas.clientWidth || 1, H = canvas.clientHeight || 1, a = W / H, avail = Math.max(120, H - inset.top - inset.bottom);
+    return r * Math.max(1, 0.82 / a, 0.68 * H / avail);
+  };
+  measureInsets(); cam.r = fitR(HOME.r);
+  function eye() {
+    const s = Math.sin(cam.phi);
+    return [cam.target[0] + cam.r * s * Math.cos(cam.theta), cam.target[1] + cam.r * s * Math.sin(cam.theta), cam.target[2] + cam.r * Math.cos(cam.phi)];
+  }
+  function clampCam() { cam.phi = Math.min(Math.max(cam.phi, 0.03), Math.PI - 0.03); cam.r = Math.min(Math.max(cam.r, 110), Math.max(1600, fitR(HOME.r) * 1.7)); }
+  function pan(dx, dy) {
+    const e = eye(), f = V.norm(V.sub(cam.target, e)), r = V.norm(V.cross(f, [0, 0, 1])), up = V.cross(r, f);
+    const k = 2 * cam.r * Math.tan(cam.fov / 2) / canvas.clientHeight;
+    cam.target = V.add(cam.target, V.add(V.mul(r, -dx * k), V.mul(up, dy * k)));
+  }
+  const ROT = 0.0075;
+  const pointers = new Map(); let lastPinch = null, panMode = false;
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tween = null; vel.theta = vel.phi = 0; dragging = true; userMoved = true;
+    panMode = e.pointerType === 'mouse' && (e.button === 2 || e.button === 1 || e.shiftKey || e.ctrlKey || e.metaKey);
+    lastPinch = null; hideHint();
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; lastPinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mid: [(a.x + b.x) / 2, (a.y + b.y) / 2] }; }
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      if (panMode) pan(dx, dy);
+      else { cam.theta -= dx * ROT; cam.phi -= dy * ROT; vel.theta = -dx * ROT; vel.phi = -dy * ROT; }
+    } else if (pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), mid = [(a.x + b.x) / 2, (a.y + b.y) / 2];
+      if (lastPinch) { cam.r *= lastPinch.d / Math.max(d, 1); pan(mid[0] - lastPinch.mid[0], mid[1] - lastPinch.mid[1]); }
+      lastPinch = { d, mid };
+    }
+    clampCam(); requestDraw();
+  });
+  const up = e => { pointers.delete(e.pointerId); lastPinch = null; if (pointers.size === 0) { dragging = false; requestDraw(); } };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); tween = null; userMoved = true; cam.r *= Math.exp(e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0012)); clampCam(); requestDraw(); hideHint(); }, { passive: false });
+  window.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('button, input')) return;
+    if (e.key === 'Escape') { closeCard(); return; }
+    const k = { ArrowLeft: [0.08, 0], ArrowRight: [-0.08, 0], ArrowUp: [0, 0.06], ArrowDown: [0, -0.06] }[e.key];
+    if (k) { cam.theta += k[0]; cam.phi += k[1]; clampCam(); requestDraw(); }
+    if (e.key === '+' || e.key === '=') { cam.r *= 0.9; clampCam(); requestDraw(); }
+    if (e.key === '-') { cam.r *= 1.1; clampCam(); requestDraw(); }
+  });
+  function flyTo(view, dur) {
+    let dth = view.theta - cam.theta; dth = Math.atan2(Math.sin(dth), Math.cos(dth));
+    tween = { t0: performance.now(), dur: dur || 900, from: { target: cam.target.slice(), theta: cam.theta, phi: cam.phi, r: cam.r },
+      to: { target: view.target.slice(), theta: cam.theta + dth, phi: view.phi, r: fitR(view.r) } };
+    vel.theta = vel.phi = 0; requestDraw();
+  }
+  function currentHome() { return !portable ? VIEWS.normal : (T >= Ttot - 1e-6 && Ttot > 0 ? VIEWS.bundle : VIEWS.portable); }
+  function resetView() { userMoved = false; flyTo(currentHome(), 850); }
+
+  // ---------- canopy (one position value: 0 folded, 100 half-open, 200 fully open) ----------
+  const POS = { folded: 0, half: 100, full: 200 };
+  let v = 200, canopyAnim = null, curState = 'full';
+  function stateOf(val) { for (const k in POS) if (Math.abs(POS[k] - val) < 0.5) return k; return null; }
+  function goState(name) {
+    if (lockedCanopy()) return;
+    const to = POS[name]; curState = name;
+    canopyAnim = { from: v, to, t0: performance.now(), dur: Math.max(450, Math.abs(to - v) * 9.5) };
+    updateUI(); requestDraw();
+  }
+  function setV(val) { if (lockedCanopy()) return; canopyAnim = null; v = Math.min(200, Math.max(0, val)); curState = stateOf(v); updateUI(); requestDraw(); }
+
+  // ---------- Portable View: canopy retract -> clamshell fold -> strap + handle ----------
+  let portable = false, T = 0, dir = 0, paused = false, exitPending = false, segs = [], Ttot = 0, startV = 200, speed = 1;
+  function buildTimeline() {
+    const C = PCm.CARRY, s = []; let t = 0;
+    const add = (k, from, to, dur) => { s.push({ k, from, to, dur, t0: t }); t += dur; };
+    startV = v;
+    if (v > 0.5) add('v', v, 0, Math.max(0.7, v * 0.0105));
+    add('up', 0, 180, 2.0); add('lift', 0, 108, 0.8); add('lo', 0, 180, 2.0); add('lift', 108, C.lift, 0.9);
+    add('strap', 0, 1, 1.3); add('handle', 0, 1, 0.7);
+    segs = s; Ttot = t;
+  }
+  function evalTimeline(t) {
+    const f = Object.assign({}, PCm.FLAT); let vv = startV;
+    for (const s of segs) {
+      if (t < s.t0) continue;                                  // segments that have not started keep the earlier value
+      const e = ease(clamp01((t - s.t0) / s.dur)), val = s.from + (s.to - s.from) * e;
+      if (s.k === 'v') vv = val; else f[s.k] = val;
+    }
+    return { f, vv };
+  }
+  function stageOf(t) {
+    if (t <= 1e-6) return 1;
+    if (t >= Ttot - 1e-6) return 4;
+    const s = segs.find(s => t >= s.t0 && t < s.t0 + s.dur) || segs[segs.length - 1];
+    return s.k === 'v' ? 2 : (s.k === 'strap' || s.k === 'handle') ? 4 : 3;
+  }
+  const STAGES = { 1: 'Stage 1 of 4 · Normal product', 2: 'Stage 2 of 4 · Retract canopy', 3: 'Stage 3 of 4 · Clamshell folding', 4: 'Stage 4 of 4 · Compact carrying form' };
+  const lockedCanopy = () => portable && T > 1e-6;
+  function enterPortable() {
+    if (portable) return; portable = true; T = 0; dir = 0; paused = false; exitPending = false; buildTimeline();
+    userMoved = false; flyTo(VIEWS.portable, 1000); closeCard(); updateUI();
+  }
+  function exitPortable() {
+    if (!portable) return;
+    if (T > 1e-6) { exitPending = true; paused = false; dir = -1; if (!userMoved) flyTo(VIEWS.portable, 900); updateUI(); requestDraw(); return; }
+    portable = false; exitPending = false; dir = 0; userMoved = false; flyTo(VIEWS.normal, 1000); updateUI();
+  }
+  function foldForCarry() { if (!portable) enterPortable(); if (T <= 1e-6) buildTimeline(); dir = 1; paused = false; exitPending = false; updateUI(); requestDraw(); }
+  function unfoldProduct() { if (!portable) return; if (T > 1e-6) { dir = -1; paused = false; if (!userMoved) flyTo(VIEWS.portable, 900); } updateUI(); requestDraw(); }
+  function togglePause() { if (!dir) return; paused = !paused; updateUI(); requestDraw(); }
+
+  // ---------- colourways ----------
+  function setColorway(key) {
+    if (!PC.COLORWAYS[key]) return;
+    colorway = key; PCm.setColorway(product, key);
+    gl.bindBuffer(gl.ARRAY_BUFFER, product.fabric.bc); gl.bufferSubData(gl.ARRAY_BUFFER, 0, product.fabric.col);
+    updateUI(); requestDraw();
+  }
+
+  // ---------- feature hotspots ----------
+  const HS = {
+    canopy: { n: 1, title: 'Three-Rib Retractable Canopy', test: m => m.part === 'canopy',
+      body: 'Three U-shaped ribs open in sequence on one shared hinge axis. Folded: all three stack as one frame. Half-open: Rib 1 lies flat over the head end while Ribs 2 + 3 rise together to about 100° (standard shade). Fully open: Rib 3 continues about 30° further (about 130°) for extra shade and privacy. The fabric spans between neighbouring ribs.',
+      anchor: () => {
+        const A = product.angs, open = A[1] - A[0] > 5, p = PCm.ribApex(A[2] - A[1] > 5 ? (A[1] + A[2]) / 2 : (A[0] + A[1]) / 2);
+        const q = open ? p : [PC.HUB_X + (p[0] - PC.HUB_X) * 0.45, p[1] - 30, p[2]];                     // folded: sit on the stack, away from the head tip
+        return { p: V.add(q, [0, 0, 1]), g: 'root', show: product.fold.up < 2 };
+      } },
+    hinge: { n: 2, title: 'Side Hinge Assembly', test: m => m.part === 'hinge',
+      body: 'One hinge housing on each side, exactly where the rounded head meets the rectangular foot. Both share a single transverse pivot axis, so every rib swings in step. The orange knob is the proposed release/lock. The upper foot leaf pins into the same housings for carrying.',
+      anchor: () => ({ p: [PC.HUB_X, -(PC.RIB_A + 7.2), PC.HUB_Z], g: 'root', show: true }) },
+    mattress: { n: 3, title: 'Padded Mattress', test: m => !!m.pad,
+      body: 'A quilted, cream cushioned resting surface over a dark, low-profile underside. The rectangular foot section is made of two leaves that sit together as one surface and only separate when the mat is folded for carrying.',
+      anchor: () => product.fold.up < 90 ? { p: [PC.L - 45, 22, 7.6], g: 'upper', show: true } : { p: [PC.HEAD / 2 - 18, 26, PCm.bundleBox().top + 0.6], g: 'root', show: true } },
+    head: { n: 4, title: 'Rounded Head Section', test: m => m.part === 'head',
+      body: 'The head section is a semicircular end about 105 cm deep and 120 cm wide. A rib lying flat traces this outline exactly, so the canopy follows the rounded perimeter with no gaps or overhang at the head end.',
+      anchor: () => ({ p: [30, 36, 6.5], g: 'root', show: product.fold.up < 2 }) },
+  };
+  const hsEls = {}; document.querySelectorAll('.hs').forEach(el => { hsEls[el.dataset.hs] = el; el.addEventListener('click', ev => { ev.stopPropagation(); openCard(el.dataset.hs); }); });
+  let activeHS = null, hiStart = 0, showLabels = true;
+  function openCard(id) {
+    activeHS = id; hiStart = performance.now();
+    $('cardTitle').textContent = HS[id].title; $('cardBody').textContent = HS[id].body; $('cardNum').textContent = HS[id].n;
+    $('card').hidden = false; Object.entries(hsEls).forEach(([k, el]) => el.classList.toggle('on', k === id)); requestDraw();
+  }
+  function closeCard() { activeHS = null; $('card').hidden = true; Object.values(hsEls).forEach(el => el.classList.remove('on')); requestDraw(); }
+  $('cardClose').addEventListener('click', closeCard);
+
+  // ---------- rib labels + hotspot placement ----------
+  const labelEls = [0, 1, 2].map(i => $('rib' + (i + 1)));
+  function placeOverlays(vp) {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const toScreen = p => { const q = project(vp, p); return { x: (q[0] * 0.5 + 0.5) * w, y: (1 - (q[1] * 0.5 + 0.5)) * h, ok: q[2] > 0 && Math.abs(q[0]) < 1.05 && Math.abs(q[1]) < 1.05 }; };
+    const angs = product.angs;
+    labelEls.forEach(el => { el.hidden = true; });
+    if (showLabels && product.fold.up < 2) {
+      const pts = angs.map(a => toScreen(PCm.xformPoint(G.root, PCm.ribApex(a))));
+      const near = (a, b) => Math.hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y) < 34 || Math.abs(angs[a] - angs[b]) < 3;
+      const groups = []; [0, 1, 2].forEach(i => { const g = groups.find(g => near(g[g.length - 1], i)); g ? g.push(i) : groups.push([i]); });
+      groups.forEach(g => {
+        const el = labelEls[g[0]], p = pts[g[g.length - 1]]; if (!p.ok) return;
+        el.textContent = g.length === 1 ? 'Rib ' + (g[0] + 1) : 'Ribs ' + g.map(i => i + 1).join(' + ');
+        el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px) translate(-50%, calc(-100% - 10px))`; el.hidden = false;
+      });
+    }
+    for (const id in HS) {
+      const el = hsEls[id]; if (!el) continue;
+      const a = HS[id].anchor(), s = toScreen(PCm.xformPoint(G[a.g], a.p));
+      const vis = showLabels && a.show && s.ok;
+      el.hidden = !vis;
+      if (vis) el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px) translate(-50%, -50%)`;
+    }
+  }
+
+  // ---------- render ----------
+  let raf = 0, lastNow = 0, lastKey = '';
+  function requestDraw() { if (!raf) raf = requestAnimationFrame(frame); }
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  }
+  function drawMesh(m) {
+    gl.bindVertexArray(m.vao);
+    if (!m.col) gl.vertexAttrib3f(2, m.color[0], m.color[1], m.color[2]);
+    gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+  }
+  function applyModel(vv, f) {                               // push canopy angles + fold state into the meshes when they change
+    const key = vv.toFixed(3) + '|' + [f.up, f.lo, f.lift, f.strap, f.handle].map(x => x.toFixed(3)).join(',');
+    if (key === lastKey) return;
+    const prevStrap = product.fold.strap, prevHandle = product.fold.handle;
+    if (lastKey === '' || vv.toFixed(3) !== lastKey.split('|')[0]) { PCm.setAngles(product, PCm.anglesAt(vv)); product.ribs.forEach(reupload); reupload(product.fabric); }
+    G = PCm.setFold(product, f);
+    if (f.strap !== prevStrap && !product.strap.hidden) reupload(product.strap);
+    if (f.handle !== prevHandle && !product.handle.hidden) reupload(product.handle);
+    lastKey = key; shadowDirty = true;
+  }
+  function frame(now) {
+    raf = 0;
+    const dt = Math.min(0.05, lastNow ? (now - lastNow) / 1000 : 0); lastNow = now;
+    let busy = false;
+    // canopy animation
+    if (canopyAnim) {
+      const t = clamp01((now - canopyAnim.t0) / canopyAnim.dur); v = canopyAnim.from + (canopyAnim.to - canopyAnim.from) * ease(t);
+      if (t >= 1) { v = canopyAnim.to; canopyAnim = null; }
+      busy = true; syncSlider();
+    }
+    // portable timeline
+    let f = PCm.FLAT, vv = v;
+    if (portable) {
+      if (dir && !paused) {
+        T = Math.min(Ttot, Math.max(0, T + dir * dt * speed)); busy = true;
+        if ((dir > 0 && T >= Ttot) || (dir < 0 && T <= 0)) {
+          const finishedFold = dir > 0; dir = 0;
+          if (finishedFold && !userMoved) flyTo(VIEWS.bundle, 1100);
+          if (!finishedFold) { v = startV; curState = stateOf(v); }
+          updateUI();
+          if (!finishedFold && exitPending) { exitPending = false; portable = false; userMoved = false; flyTo(VIEWS.normal, 1000); updateUI(); }
+        }
+        updateStage();
+      }
+      if (portable && segs.length) { const r = evalTimeline(T); f = r.f; vv = T > 1e-6 ? r.vv : v; }
+    }
+    applyModel(vv, f);
+    // camera
+    if (tween) {
+      const t = Math.min(1, (now - tween.t0) / tween.dur), e = ease(t), fr = tween.from, to = tween.to;
+      cam.target = fr.target.map((x, k) => x + (to.target[k] - x) * e); cam.theta = fr.theta + (to.theta - fr.theta) * e;
+      cam.phi = fr.phi + (to.phi - fr.phi) * e; cam.r = fr.r + (to.r - fr.r) * e;
+      if (t >= 1) tween = null; busy = true;
+    } else if (!dragging && (Math.abs(vel.theta) > 1e-4 || Math.abs(vel.phi) > 1e-4)) {
+      cam.theta += vel.theta; cam.phi += vel.phi; vel.theta *= 0.9; vel.phi *= 0.9; clampCam(); busy = true;
+    }
+    // highlight
+    const hiAge = (now - hiStart) / 1000, hiVal = activeHS ? (hiAge < 1.6 ? 0.55 + 0.3 * Math.sin(hiAge * 7.5) : 0.5) : 0;
+    if (activeHS && hiAge < 1.7) busy = true;
+    resize();
+    if (shadowDirty) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, smFB); gl.viewport(0, 0, SM, SM);
+      gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.colorMask(false, false, false, false);
+      gl.clear(gl.DEPTH_BUFFER_BIT); gl.useProgram(SP); gl.uniformMatrix4fv(su.LVP, false, LVP);
+      product.meshes.forEach(m => { if (m.castShadow && !m.hidden) { gl.uniformMatrix4fv(su.Model, false, G[m.group]); gl.bindVertexArray(m.vao); gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0); } });
+      gl.colorMask(true, true, true, true); gl.bindFramebuffer(gl.FRAMEBUFFER, null); shadowDirty = false;
+    }
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    const e = eye(), asp = canvas.width / canvas.height;
+    const pr = persp(cam.fov, asp, 5, 6000), Hc = canvas.clientHeight || 1;
+    pr[9] = -((inset.bottom - inset.top) / 2) / (Hc / 2) * 0.9;   // centre the model in the space left between header and dock
+    const vp = mmul(pr, lookAt(e, cam.target, [0, 0, 1]));
+    gl.useProgram(P);
+    gl.uniformMatrix4fv(u.uVP, false, vp); gl.uniformMatrix4fv(u.uLVP, false, LVP);
+    const pf = product.fold, footEnd = pf.lo > 90 ? PC.HEAD : PC.L;
+    gl.uniform2f(u.uMatC, PC.L / 2, PC.W / 2 + 0.8); gl.uniform2f(u.uMatH, PC.HEAD, footEnd + 0.8); gl.uniform1f(u.uAO, Math.exp(-pf.lift / 6));
+    gl.uniform3fv(u.uEye, e); gl.uniform3fv(u.uSun, SUN); gl.uniform2f(u.uTexel, 1 / SM, 1 / SM);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, smTex); gl.uniform1i(u.uShadow, 0);
+    gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.disable(gl.BLEND);
+    gl.uniform1i(u.uGround, 0);
+    const hiTest = activeHS ? HS[activeHS].test : null;
+    for (const m of product.meshes) {
+      if (m.hidden) continue;
+      if (m.doubleSided) gl.disable(gl.CULL_FACE); else { gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); }
+      gl.uniformMatrix4fv(u.uModel, false, G[m.group]);
+      gl.uniform1f(u.uRough, m.rough); gl.uniform1f(u.uSpec, m.spec); gl.uniform1f(u.uTrans, m.fabric ? 0.55 : 0.0);
+      gl.uniform1f(u.uHi, hiTest && hiTest(m) ? hiVal : 0);
+      drawMesh(m);
+    }
+    if (e[2] > 0) {   // shadow-catcher ground, only seen from above
+      gl.disable(gl.CULL_FACE); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+      gl.uniformMatrix4fv(u.uModel, false, ID); gl.uniform1f(u.uHi, 0);
+      gl.uniform1i(u.uGround, 1); drawMesh(ground); gl.depthMask(true); gl.disable(gl.BLEND);
+    }
+    placeOverlays(vp);
+    if (busy) requestDraw(); else lastNow = 0;
+  }
+
+  // ---------- UI ----------
+  const DESC = { folded: 'Ribs 1, 2 and 3 stacked · 1 visible frame', half: 'Rib 1 apart · Ribs 2 + 3 stacked · 2 visible frames', full: 'Ribs 1, 2 and 3 apart · 3 visible frames' };
+  const slider = $('canopyPos');
+  function syncSlider() { slider.value = String(Math.round(v)); slider.setAttribute('aria-valuetext', DESC[stateOf(v)] || (v < 100 ? 'Between folded and half-open' : 'Between half-open and fully open')); }
+  function updateStage() { const s = $('stage'); if (s) s.textContent = STAGES[stageOf(T)]; }
+  function updateUI() {
+    const locked = lockedCanopy();
+    document.querySelectorAll('[data-state]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.state === curState)); b.disabled = locked; });
+    slider.disabled = locked; syncSlider();
+    $('stateDesc').textContent = locked ? 'Unfold the product to use the canopy controls' : (DESC[curState] || (v < 100 ? 'Ribs 2 + 3 rising together from the stack' : 'Rib 3 moving apart from Rib 2'));
+    document.querySelectorAll('[data-cw]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.cw === colorway)));
+    const cw = PC.COLORWAYS[colorway]; $('cwName').textContent = cw.name; $('cwTag').textContent = cw.tag;
+    $('labels').setAttribute('aria-pressed', String(showLabels));
+    $('portable').setAttribute('aria-pressed', String(portable));
+    $('portRow').hidden = !portable; $('modeChip').hidden = !portable;
+    document.body.classList.toggle('is-portable', portable);
+    $('foldBtn').disabled = !portable || (dir > 0 && !paused) || T >= Ttot - 1e-6;
+    $('unfoldBtn').disabled = !portable || T <= 1e-6 || (dir < 0 && !paused);
+    $('pauseBtn').disabled = !dir; $('pauseBtn').textContent = paused ? 'Resume' : 'Pause'; $('pauseBtn').setAttribute('aria-pressed', String(paused));
+    updateStage(); measureInsets();
+  }
+  document.querySelectorAll('[data-state]').forEach(b => b.addEventListener('click', () => goState(b.dataset.state)));
+  slider.addEventListener('input', () => setV(Number(slider.value)));
+  document.querySelectorAll('[data-cw]').forEach(b => b.addEventListener('click', () => setColorway(b.dataset.cw)));
+  $('reset').addEventListener('click', resetView);
+  $('labels').addEventListener('click', () => { showLabels = !showLabels; if (!showLabels) closeCard(); updateUI(); requestDraw(); });
+  $('portable').addEventListener('click', () => { portable ? exitPortable() : enterPortable(); });
+  $('foldBtn').addEventListener('click', foldForCarry);
+  $('unfoldBtn').addEventListener('click', unfoldProduct);
+  $('pauseBtn').addEventListener('click', togglePause);
+  const hint = $('hint');
+  let hintTimer = setTimeout(hideHint, 12000);
+  function hideHint() { if (hint) hint.classList.add('faded'); clearTimeout(hintTimer); }
+  window.addEventListener('resize', () => { measureInsets(); requestDraw(); });
+  updateUI(); cam.r = fitR(HOME.r); requestDraw();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measureInsets(); if (!userMoved && !tween) { cam.r = fitR(HOME.r); requestDraw(); } });
+
+  // hooks for automated tests / exports
+  window.__pc = {
+    cam, HOME, VIEWS, eye, product, requestDraw, goState, setV, resetView, setColorway, openCard, closeCard,
+    enterPortable, exitPortable, foldForCarry, unfoldProduct, togglePause,
+    seek(t) { if (!portable) enterPortable(); if (!segs.length || T <= 1e-6) buildTimeline(); T = Math.min(Ttot, Math.max(0, t)); dir = 0; updateUI(); requestDraw(); },
+    set shadowDirty(x) { shadowDirty = x; }, set speed(x) { speed = x; },
+    get state() { return curState; }, get angles() { return product.angs.slice(); }, get v() { return v; }, get colorway() { return colorway; },
+    get portable() { return portable; }, get T() { return T; }, get Ttot() { return Ttot; }, get fold() { return Object.assign({}, product.fold); },
+    get stage() { return stageOf(T); }, get pointers() { return pointers.size; }, get tweening() { return !!tween; }, get activeHS() { return activeHS; }, get paused() { return paused; }, get dir() { return dir; },
+  };
+})();
+
+</script>
+</body>
+</html>
